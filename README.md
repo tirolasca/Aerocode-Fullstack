@@ -37,7 +37,7 @@ Node.js 20 + TypeScript + Express + Prisma ORM + MySQL 8.
 
 Consulte aerocode-backend/README.md para instruções completas.
 
-## Métricas de qualidade (AV3)
+## Métricas de qualidade 
 
 | Métrica                | Como é medida                                  | Unidade |
 |------------------------|------------------------------------------------|---------|
