@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum TipoAeronave {
+  COMERCIAL
+  MILITAR
+}
+
+enum TipoPeca {
+  NACIONAL
+  IMPORTADA
+}
+
+enum StatusPeca {
+  EM_PRODUCAO
+  EM_TRANSPORTE
+  PRONTA
+}
+
+enum StatusEtapa {
+  PENDENTE
+  ANDAMENTO
+  CONCLUIDA
+}
+
+enum NivelPermissao {
+  ADMINISTRADOR
+  ENGENHEIRO
+  OPERADOR
+}
+
+enum TipoTeste {
+  ELETRICO
+  HIDRAULICO
+  AERODINAMICO
+}
+
+enum ResultadoTeste {
+  APROVADO
+  REPROVADO
+}
+
+model Funcionario {
+  id             Int              @id @default(autoincrement())
+  nome           String           @db.VarChar(120)
+  usuario        String           @unique @db.VarChar(60)
+  senhaHash      String           @db.VarChar(255)
+  telefone       String?          @db.VarChar(30)
+  endereco       String?          @db.VarChar(200)
+  nivelPermissao NivelPermissao   @default(OPERADOR)
+  criadoEm       DateTime         @default(now())
+  atualizadoEm   DateTime         @updatedAt
+
+  etapas EtapaFuncionario[]
+
+  @@map("funcionarios")
+}
+
+model Peca {
+  id           String     @id @db.VarChar(20)
+  nome         String     @db.VarChar(150)
+  tipo         TipoPeca
+  fornecedor   String     @db.VarChar(100)
+  status       StatusPeca @default(EM_PRODUCAO)
+  quantidade   Int        @default(0)
+  disponivel   Int        @default(0)
+  criadoEm     DateTime   @default(now())
+  atualizadoEm DateTime   @updatedAt
+
+  ordens OrdemPeca[]
+
+  @@map("pecas")
+}
+
+model Ordem {
+  id           String            @id @db.VarChar(20)
+  codigo       String            @unique @db.VarChar(20)
+  modelo       String            @db.VarChar(100)
+  tipo         TipoAeronave
+  capacidade   Int?
+  alcance      Int?
+  cliente      String            @db.VarChar(100)
+  inicio       String            @db.VarChar(20)
+  entrega      String            @db.VarChar(20)
+  progresso    Int               @default(0)
+  prioridade   String            @default("Normal") @db.VarChar(20)
+  criadoEm     DateTime          @default(now())
+  atualizadoEm DateTime          @updatedAt
+
+  etapas    Etapa[]
+  pecas     OrdemPeca[]
+  testes    Teste[]
+  inspecoes InspecaoQualidade[]
+
+  @@map("ordens")
+}
+
+model Etapa {
+  id       Int         @id @default(autoincrement())
+  ordemId  String
+  nome     String      @db.VarChar(120)
+  prazo    String      @default("") @db.VarChar(20)
+  status   StatusEtapa @default(PENDENTE)
+  criadoEm DateTime    @default(now())
+
+  ordem        Ordem              @relation(fields: [ordemId], references: [id], onDelete: Cascade)
+  funcionarios EtapaFuncionario[]
+
+  @@map("etapas")
+}
+
+model EtapaFuncionario {
+  etapaId       Int
+  funcionarioId Int
+
+  etapa       Etapa       @relation(fields: [etapaId],       references: [id], onDelete: Cascade)
+  funcionario Funcionario @relation(fields: [funcionarioId], references: [id], onDelete: Cascade)
+
+  @@id([etapaId, funcionarioId])
+  @@map("etapas_funcionarios")
+}
+
+model OrdemPeca {
+  ordemId String
+  pecaId  String
+
+  ordem Ordem @relation(fields: [ordemId], references: [id], onDelete: Cascade)
+  peca  Peca  @relation(fields: [pecaId],  references: [id], onDelete: Cascade)
+
+  @@id([ordemId, pecaId])
+  @@map("ordens_pecas")
+}
+
+model Teste {
+  id        Int            @id @default(autoincrement())
+  ordemId   String
+  tipo      TipoTeste
+  resultado ResultadoTeste
+  criadoEm  DateTime       @default(now())
+
+  ordem Ordem @relation(fields: [ordemId], references: [id], onDelete: Cascade)
+
+  @@map("testes")
+}
+
+model InspecaoQualidade {
+  id          String          @id @db.VarChar(20)
+  ordemId     String
+  aeronave    String          @db.VarChar(100)
+  inspetor    String          @db.VarChar(120)
+  fase        String          @db.VarChar(80)
+  tipo        TipoTeste
+  data        String          @db.VarChar(20)
+  resultado   ResultadoTeste?
+  observacoes String?         @db.Text
+  criadoEm    DateTime        @default(now())
+
+  ordem Ordem @relation(fields: [ordemId], references: [id], onDelete: Cascade)
+
+  @@map("inspecoes_qualidade")
+}
+
+model LogMetrica {
+  id                   Int      @id @default(autoincrement())
+  rota                 String   @db.VarChar(120)
+  metodo               String   @db.VarChar(10)
+  statusHttp           Int
+  latenciaMs           Float
+  processamentoMs      Float
+  respostaMs           Float
+  usuariosConcorrentes Int      @default(1)
+  registradoEm         DateTime @default(now())
+
+  @@map("log_metricas")
+}
